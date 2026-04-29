@@ -1,0 +1,11 @@
+name: Configuration Management CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  call-ci-template:
+    uses: ./.github/workflows/ci-template.yml # Path to the template file
+    with:
+      working-directory: <YOUR APP DIRECTORY>
+      python-version: "3.14"
+      runner: "self-hosted"

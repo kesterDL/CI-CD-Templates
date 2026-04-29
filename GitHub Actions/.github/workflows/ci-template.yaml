@@ -1,0 +1,77 @@
+name: CI Template
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: "The directory where the code resides"
+        required: true
+        type: string
+      python-version:
+        description: "The Python version to use"
+        required: false
+        type: string
+        default: "3.14"
+      runner:
+        description: "The runner tag to execute the jobs on"
+        required: false
+        type: string
+        default: "self-hosted"
+
+jobs:
+  mypy-check:
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run mypy linting check
+        run: uv run mypy src/ --config-file mypy.ini
+
+  unit-tests:
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run unit tests with coverage
+        run: uv run pytest test/ -v --cov --cov-report=term-missing --cov-fail-under=90
+
+  bandit-scan:
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run bandit security scan
+        run: uv run bandit src/*.py test/*.py
