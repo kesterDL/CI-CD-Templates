@@ -1,0 +1,54 @@
+name: Security Scan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "Path_01/**"
+      - "Path_02/**"
+      - ".github/workflows/security-scan.yml"
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: "0 0 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-security:
+    name: Python Security & Dependency Audit (3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: Working_Dir
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.6.12"
+          enable-cache: true
+          cache-dependency-glob: "Working_Dir/uv.lock"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --python 3.12 --frozen --dev
+
+      - name: Audit Python Packages for Known Vulnerabilities (pip-audit)
+        run: uv run --with pip-audit pip-audit
+
+      - name: Run Static Security Analysis (Bandit)
+        run: uv run --with bandit bandit -r src/ -ll
+        
